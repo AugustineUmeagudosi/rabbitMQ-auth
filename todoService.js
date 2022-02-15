@@ -19,7 +19,7 @@ app.get('/todo', (req, res ) => {
             });
         }).catch(console.warn);
 
-        // Listens on the auth
+        // Listens on the auth Response queue
         connection.then((conn) => {
             return conn.createChannel();
         }).then((channel) => {
