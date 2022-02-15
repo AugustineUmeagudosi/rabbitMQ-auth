@@ -3,16 +3,20 @@ const connection = require('amqplib').connect('amqp://localhost');
 
 const port = 2000;
 const app = express();
+const authTokenQueue = 'authToken';
+const authResponseQueue = 'authResponse';
 
 // Consumer == listening for authentication tokens
 connection.then((conn) => {
     return conn.createChannel();
   }).then((channel) => {
-    return channel.assertQueue('authToken').then(() => {
-      return channel.consume('authToken', (msg) => {
+    return channel.assertQueue(authTokenQueue).then(() => {
+      return channel.consume(authTokenQueue, (msg) => {
         if (msg !== null) {
           const token = JSON.parse(msg.content.toString());
           channel.ack(msg);
+
+          // handle program logic here
           const processedToken = token.split(' ')[1];
           const user = {
             name: 'John Doe',
@@ -20,6 +24,7 @@ connection.then((conn) => {
             role: 'admin'
           };
 
+          // publish the response to the todo service
           sendResponse(user);
           return console.log('message recieved and processed');
         }
@@ -32,8 +37,8 @@ connection.then((conn) => {
       connection.then((conn) => {
           return conn.createChannel();
         }).then((channel) => {
-          return channel.assertQueue('authResponse').then(() => {
-            return channel.sendToQueue('authResponse', Buffer.from(JSON.stringify(response)));
+          return channel.assertQueue(authResponseQueue).then(() => {
+            return channel.sendToQueue(authResponseQueue, Buffer.from(JSON.stringify(response)));
           });
       }).catch(console.warn);
   }

@@ -3,26 +3,28 @@ const connection = require('amqplib').connect('amqp://localhost');
 
 const port = 3000;
 const app = express();
+const authTokenQueue = 'authToken';
+const authResponseQueue = 'authResponse';
 
 // rabbit config routers
 app.get('/todo', (req, res ) => {
     try {
         const token = 'Bearer someRandomUserAuthToken';
-        // Publisher
+        // Publish token to the authentication queue for auth microservice to decode
         connection.then((conn) => {
             return conn.createChannel();
         }).then((channel) => {
-            return channel.assertQueue('authToken').then(() => {
-            return channel.sendToQueue('authToken', Buffer.from(JSON.stringify(token)));
+            return channel.assertQueue(authTokenQueue).then(() => {
+            return channel.sendToQueue(authTokenQueue, Buffer.from(JSON.stringify(token)));
             });
         }).catch(console.warn);
 
-        // Consumer
+        // Listens on the auth
         connection.then((conn) => {
             return conn.createChannel();
         }).then((channel) => {
-            return channel.assertQueue('authResponse').then(() => {
-                return channel.consume('authResponse', (msg) => {
+            return channel.assertQueue(authResponseQueue).then(() => {
+                return channel.consume(authResponseQueue, (msg) => {
                     if (msg !== null) {
                         const responseData = JSON.parse(msg.content.toString());
                         channel.ack(msg);
